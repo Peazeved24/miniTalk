@@ -6,7 +6,7 @@
 /*   By: peazeved <peazeved@student.42lisboa.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/18 14:54:52 by peazeved          #+#    #+#             */
-/*   Updated: 2025/12/05 14:12:14 by peazeved         ###   ########.fr       */
+/*   Updated: 2025/12/05 15:11:04 by peazeved         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@ int ft_isdigit(char *str) // av[1] - atoi - pid.
     return 1;
 }
 
-int ft_atoi(char *str)
+ int ft_atoi(char *str)
 {
     int n = 0;
     int s = 1;

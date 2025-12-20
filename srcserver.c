@@ -6,32 +6,41 @@
 /*   By: peazeved <peazeved@student.42lisboa.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 01:20:16 by peazeved          #+#    #+#             */
-/*   Updated: 2025/12/05 14:32:28 by peazeved         ###   ########.fr       */
+/*   Updated: 2025/12/18 15:23:13 by peazeved         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "struct.h"
 
 
+void    *ft_memset(void *b, int c, size_t len)
+{
+	unsigned char		*ptr;
+	size_t				i;
+
+	ptr = (unsigned char *)b;
+	i = 0;
+	while (i < len)
+	{
+		ptr[i] = (unsigned char) c;
+		i++;
+	}
+	return (b); // ?
+}
 
 void ft_msghandler(t_struct *s)
 {
-    s->msg = malloc((s->len + 1));
-    if(!s->msg)
+    if(s->msg)
+        return;
+    s->msg = malloc(s->len + 1);
+    if (!s->msg)
         exit(1);
-    s->msg[s->len] = '\0';
+    ft_memset(s->msg, 0, s->len + 1);
 }
 
-void ft_lenhandler(t_struct *s, int sig)
-{
-    s->len <<= 1;
-    if(sig == SIGUSR2)
-        s->len |=1;
-}
 
 void ft_resetvars(t_struct *s, int *g_bits)
 {
-    ft_putchar('\n');
     s->len = 0;   
     s->i = 0;
     s->j = 0;
@@ -44,23 +53,12 @@ void ft_resetvars(t_struct *s, int *g_bits)
     }
 }
 
-int ft_charhanlder(t_struct *s, int sig)
-{
-    s->c <<= 1;
-    if(sig == SIGUSR2)
-        s->c |= 1;
-    s->i++;
-    if(s->i == 8)
-    {
-        s->i = 0;
-        return 1;     
-    }     
-    return 0;
-}
-
 void ft_putmsg(t_struct *s)
 {
-   s->msg[s->j] = '\0';
-    ft_putstr(s->msg);
+    if(!s->msg)
+        return;
+    write(1, s->msg, s->len);
     ft_putchar('\n');
+    free(s->msg);
+    s->msg = NULL;
 }

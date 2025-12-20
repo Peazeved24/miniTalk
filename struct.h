@@ -6,7 +6,7 @@
 /*   By: peazeved <peazeved@student.42lisboa.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/28 17:05:40 by peazeved          #+#    #+#             */
-/*   Updated: 2025/12/05 14:46:06 by peazeved         ###   ########.fr       */
+/*   Updated: 2025/12/18 15:24:06 by peazeved         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 #include <unistd.h> // getpid, , write, pause
 #include <signal.h> // signals, SIGUSR2 , kill
 #include <stdlib.h> // malloc, free, exit.
+#include <string.h>
 
 typedef struct s_struct
 {
@@ -35,9 +36,8 @@ void ft_putnbr(unsigned int n);
 int ft_isdigit(char *str);
 
 //server
-void ft_msghandler(t_struct *s);
-void ft_lenhandler(t_struct *s, int sig);
-void ft_resetvars(t_struct *s, int *g_bits);
-int ft_charhanlder(t_struct *s, int sig);
-void ft_putmsg(t_struct *s);
+void    ft_msghandler(t_struct *s);
+void    ft_resetvars(t_struct *s, int *g_bits);
+void    ft_putmsg(t_struct *s);
+void    *ft_memset(void *b, int c, size_t len);
 #endif

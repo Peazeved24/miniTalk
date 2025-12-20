@@ -1,0 +1,217 @@
+Passo 1 – Preparar o servidor para ACK
+
+Registrar o handler com sigaction para pegar o si_pid (PID do cliente que enviou o sinal):
+
+Isso permite ao servidor saber para qual PID enviar o ACK.
+
+Exemplo: sigaction(SIGUSR1, &sa, NULL); sigaction(SIGUSR2, &sa, NULL);
+
+Guardar o PID do cliente
+
+No seu handler, você precisa de algo como static pid_t client_pid = 0;
+
+Quando começar a receber sinais da “mensagem” (ou do PID enviado), armazene info->si_pid no client_pid.
+
+Enviar ACK por caractere
+
+Depois que ft_charhanlder retorna true (caractere completo):
+
+kill(client_pid, SIGUSR1); // envia ACK
+
+
+
+Passo 2 – Preparar o cliente para receber ACK
+
+Declarar flag global para ACK:
+
+volatile sig_atomic_t ack_received = 0;
+
+
+Criar handler de ACK:
+
+void ack_handler(int sig)
+{
+    if(sig == SIGUSR1)
+        ack_received = 1;
+}
+
+
+Registrar handler:
+
+signal(SIGUSR1, ack_handler);
+
+
+Esperar ACK entre cada caractere
+
+No seu ft_builchar (ou equivalente), depois de enviar os 8 bits de um caractere:
+
+ack_received = 0;
+while (!ack_received)
+    pause(); // espera o ACK do servidor
+
+
+
+
+Passo 3 – Enviar o PID do cliente (opcional, mas recomendado)
+
+Antes de enviar a mensagem, envie getpid() do cliente bit a bit, como se fosse a “primeira mensagem”.
+
+O servidor recebe esses bits e guarda em client_pid.
+
+Depois disso, todos os ACKs podem ser enviados para esse PID.
+
+Observação: se você não enviar o PID, o servidor só vai conseguir mandar ACK se você usar sigaction e info->si_pid em cada sinal, o que funciona, mas enviar explicitamente o PID é mais seguro para sincronia.
+
+
+
+
+Passo 4 – Ajustar envio de mensagem
+
+Para cada caractere enviado no cliente:
+
+Enviar 8 bits (SIGUSR1/SIGUSR2)
+
+Esperar ACK do servidor antes de enviar o próximo
+
+Para o tamanho da mensagem (ft_getlen): você também pode esperar ACKs por cada 32 bits enviados (opcional, mas mantém confiabilidade).
+
+
+------------------------------------------------------------------------------------
+
+    CORRECAO DO MINITALK ANTIGO E BUGADO 
+
+        - problema gigante com o meu putmsg !!
+                - estava a usar um putstr para por a minha msg...
+                    void ft_putmsg(t_struct *s);
+                    {
+                        ....
+                        ft_putstr(s->msg);
+                        ....
+                    }
+                    erro grave...
+                    agora:
+                        - uso write(1, s->msg, s->len);
+                                o len e sagrado , sem ele , msg gigantes estavam a gerar bugs;
+                        - verficao para saber se a msg ja esta alocada!
+                        - apos o final do processo por toda a msg a 0 com  memset(s->msg, 0, s->len + 1);
+        - problemas com reset de var:
+            - 2 funcoes a resetar a msms string --- WTF.
+                - AGORA :
+                    =1 funcao responsavel por resetar as minhas vars :
+                        - condicao de seguranca com if(s->msg) antes de resetar so pq sim e s->msg[s-j] = NULL;
+            - forma de printar msg esta diferente !
+                - antes enquanto esta condicao n fosse verdade (j == len), ia enchendo o meu buffer com o c;
+                AGORA:
+                    - condicao de seguranca ao encher o buffer 
+                        if(s.j < s.len)
+                                s.msg[s.j++] = s.c;
+                            - reseto a msm o meu c;
+                        - para entao quando vir que j === len.
+                            - ft_putmsg(msg);
+------------------------------------------------------------------------------------
+
+PARA O BONUS:
+    - o client vai ter de esperar por confirmacao!:
+    - o server vai enviar um sinal de volta apos receber a msg (ou char).
+
+        -   SERVER:
+            - enviar um kill(c_pid, SIGUSR2); 
+        -  CLIENT:
+            - apos o envio de um char/bit. 
+                - usa pause / sigwaitinfo(); - para esperar o ack.
+        
+        - n devo usar sleep para sincronizacao.
+        - usar signaction(), e nao signal desta vez.
+        - race condictions (ACK antes do pause -> FLAG GLOBAL.)
+
+        FLUX0:
+
+            client -> envia 8 sinais
+            server -> monta byte
+            server -> ACK
+            client -> próximo byte
+
+
+static void ft_singalsetup(void) // clareza -- no lugar de estar a por na main
+{
+    struct sigaction sa;
+
+    sa.sa_sigaction = ft_serverhandler; // definir o handler.
+    sa.sa_flags = SA_SIGINFO;
+    sigemptyset(&sa.sa_mask);
+
+    sigaction(SIGUSR1, &sa, NULL); 
+    sigaction(SIGUSR2, &sa, NULL);
+}
+
+-  struct sigaction sa; == declarar a var sa. -- tipo strcut sigaction
+    - contem campos - qual funcao sera chamada quando o sinal chegar - HANDLER.
+    - flags etc.
+-   sa.sa_sigaction = ft_serverhandler; // definir o handler.
+    - uso de sa_sigaction == info extra:
+                            - PID do client.
+    -  definir a minha flag = sa.sa_flags = SA_SIGINFO;
+   - sigemptyset(&sa.sa_mask) - quando um sinal chega , o kernel chama o handler.
+    - caso outro sinal chegar,enquanto o handler funciona, pode interromper o handler 
+    e ao fazer sigemptyset(&sa.sa_mask) -- limpamos a mascara - nenhum sinal e bloqueado durante a execuao do handler.
+
+      sigaction(SIGUSR1, &sa, NULL); 
+    sigaction(SIGUSR2, &sa, NULL); == associar sinais .
+
+
+void ft_serverhandler(int sig, siginfo_t *info, void *ctx)
+{
+    (void)ctx;
+    static t_struct s; // minha struct.
+
+    
+}
+/*
+
+chave - info->si_pid. // pid do client.
+    - PID - info
+    - UID - id do user --- info.
+    - (void) ctx -- context do processo no momento em que o sinal chegou:
+        - registros?
+*/
+------------------------------------------------------------------------------------
+
+
+FLUXO
+    -- vai ser , o client gera o len , apos o envio (pause).
+        - o server recebe o len - ACK.
+    --  o client envia o char , apos o envio , pause();
+        - o server recebe os chars (ou apos a msg) - ACK.
+
+REGRA DE OURO DOS SINAIS
+
+❗ Nunca usar pause() sem garantir que o sinal ainda não chegou
+
+pause() não guarda sinais passados....
+------------------------------------------------------------------------------------
+
+bug do dia:
+    -- usar char no lugar de unsigned char -...- -- char da morte kkk
+    na contagem , evitar usar char para n entrar em range negativo.
+    
+BUG DO DIA 2:
+
+paizao@PcDoPaizao:~/42/Arank02/miniTalk$ ./clientbonus 9838  ""
+paizao@PcDoPaizao:~/42/Arank02/miniTalk$ ./clientbonus 9838  ""
+paizao@PcDoPaizao:~/42/Arank02/miniTalk$ ./clientbonus 9838  ""
+paizao@PcDoPaizao:~/42/Arank02/miniTalk$ ./clientbonus 9838  ""
+paizao@PcDoPaizao:~/42/Arank02/miniTalk$ ./clientbonus 9838  "o"
+paizao@PcDoPaizao:~/42/Arank02/miniTalk$ ./clientbonus 9838  "o"
+
+
+
+
+paizao@PcDoPaizao:~/42/Arank02/miniTalk$ ./serverbonus 
+PID: 9838
+________________TEXT_ZONE________________
+7 --- -WTFFFF
+
+-- resposta ... n existe em si o byte 0 para "".
+    
+    resolvido ... confirmar se o len == 0,  resetar as vars e returrn 1.
+    - 
