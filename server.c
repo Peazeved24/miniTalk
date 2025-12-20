@@ -41,8 +41,9 @@ static int ft_lenhandler(t_struct *s, int sig)
         {
             if(s->len == 0)
             {
-                ft_resetvars(s, &g_bits);
-                return 0;
+                s->len = 0;
+                g_bits = 0;
+                return 1;
             }
             ft_msghandler(s);
         }

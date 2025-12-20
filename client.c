@@ -32,6 +32,16 @@ void ft_pidverify(int pid)
 
 void ft_getlen(int len, int b, int pid)
 {
+    if(len == 0)
+    {
+        while(b >= 0)
+        {
+            kill(pid, SIGUSR1);
+            b--;
+            usleep(100);
+        }
+        return;
+    }
     while(b >= 0)
     {
         if((len >> b) & 1)
